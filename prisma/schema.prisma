@@ -1,0 +1,28 @@
+// Prisma schema for the Turkiye travel site.
+// Run `npm run db:push` to sync this schema to the database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Pin {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // restaurant | sight | poi | experience | hotel | shopping | other
+  description String?  @db.Text
+  notes       String?  @db.Text
+  address     String?
+  latitude    Float
+  longitude   Float
+  rating      Int? // optional 1-5
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}

@@ -17,7 +17,7 @@ const emptyState = {
   description: "",
   notes: "",
   address: "",
-  imageUrl: "",
+  photos: "",
   rating: "",
   tags: "",
 };
@@ -40,7 +40,12 @@ export default function PinForm({
         description: editing.description ?? "",
         notes: editing.notes ?? "",
         address: editing.address ?? "",
-        imageUrl: editing.imageUrl ?? "",
+        photos: (editing.images?.length
+          ? editing.images
+          : editing.imageUrl
+            ? [editing.imageUrl]
+            : []
+        ).join("\n"),
         rating: editing.rating ? String(editing.rating) : "",
         tags: editing.tags.join(", "),
       });
@@ -58,6 +63,10 @@ export default function PinForm({
     if (lat == null || lng == null) return;
     setSaving(true);
     setError(null);
+    const photos = form.photos
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     try {
       await onSubmit({
         name: form.name.trim(),
@@ -65,7 +74,8 @@ export default function PinForm({
         description: form.description.trim() || null,
         notes: form.notes.trim() || null,
         address: form.address.trim() || null,
-        imageUrl: form.imageUrl.trim() || null,
+        imageUrl: photos[0] ?? null,
+        images: photos,
         latitude: lat,
         longitude: lng,
         rating: form.rating ? Number(form.rating) : null,
@@ -130,26 +140,36 @@ export default function PinForm({
       </label>
 
       <label className="flex flex-col gap-1 text-sm font-medium">
-        Photo URL
-        <input
-          value={form.imageUrl}
-          onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-          placeholder="https://…  (optional)"
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-normal focus:border-gray-900 focus:outline-none"
+        Photos
+        <span className="text-xs font-normal text-gray-500">
+          One image URL per line — the first is the cover.
+        </span>
+        <textarea
+          value={form.photos}
+          onChange={(e) => setForm({ ...form, photos: e.target.value })}
+          rows={3}
+          placeholder={"https://…\nhttps://…"}
+          className="resize-y rounded-md border border-gray-300 px-3 py-2 text-sm font-normal focus:border-gray-900 focus:outline-none"
         />
-        {form.imageUrl.trim() ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={form.imageUrl.trim()}
-            alt="Preview"
-            className="mt-1 h-24 w-full rounded-md object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-            onLoad={(e) => {
-              e.currentTarget.style.display = "block";
-            }}
-          />
+        {form.photos.trim() ? (
+          <div className="mt-1 flex gap-2 overflow-x-auto">
+            {form.photos
+              .split(/\r?\n/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={url + i}
+                  src={url}
+                  alt=""
+                  className="h-16 w-20 shrink-0 rounded-md object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ))}
+          </div>
         ) : null}
       </label>
 

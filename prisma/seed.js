@@ -11,6 +11,23 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
+// Topical placeholder photos, deterministic per pin via ?lock. Swap any of these
+// for a real photo from the app's edit form (the "Photo URL" field).
+const CATEGORY_IMG = {
+  restaurant: "istanbul,restaurant,food",
+  sight: "istanbul,landmark",
+  poi: "istanbul,cityscape",
+  experience: "istanbul,culture",
+  hotel: "istanbul,hotel",
+  shopping: "istanbul,market",
+  other: "istanbul",
+};
+
+function photoFor(category, lock) {
+  const tags = CATEGORY_IMG[category] ?? "istanbul";
+  return `https://loremflickr.com/800/600/${tags}?lock=${lock}`;
+}
+
 /**
  * @typedef {Object} SeedPin
  * @property {string} name
@@ -300,26 +317,217 @@ const ISTANBUL_PINS = [
     rating: 5,
     tags: ["palace", "luxury", "bosphorus"],
   },
+
+  // ── Galataport & Karaköy (European shore, modern waterfront) ─────────────
+  {
+    name: "Galataport Istanbul",
+    category: "poi",
+    description:
+      "Sleek revamped waterfront quarter along the Bosphorus with cafés, restaurants, shops and a cruise terminal.",
+    address: "Kemankeş Karamustafa Paşa, Karaköy, Beyoğlu",
+    latitude: 41.0243,
+    longitude: 28.982,
+    rating: 4,
+    tags: ["waterfront", "cafes", "shopping", "modern"],
+  },
+  {
+    name: "Novikov Istanbul (Galataport)",
+    category: "restaurant",
+    description:
+      "Glossy international restaurant at Galataport serving Asian and Mediterranean plates right by the water.",
+    address: "Galataport, Karaköy, Beyoğlu",
+    latitude: 41.0242,
+    longitude: 28.9827,
+    rating: 4,
+    tags: ["modern", "upscale", "waterfront"],
+  },
+  {
+    name: "Karaköy backstreets (bars)",
+    category: "experience",
+    description:
+      "Warren of lively lanes behind Karaköy packed with cocktail bars and late-night spots.",
+    address: "Kemankeş Karamustafa Paşa, Karaköy, Beyoğlu",
+    latitude: 41.0236,
+    longitude: 28.9768,
+    rating: 4,
+    tags: ["bars", "nightlife", "cocktails"],
+  },
+  {
+    name: "Unter",
+    category: "restaurant",
+    description:
+      "Cool Karaköy bistro and bar that runs from weekend brunch through to evening drinks.",
+    address: "Kemankeş Karamustafa Paşa, Kara Ali Kaptan Sk. No:4, Karaköy",
+    latitude: 41.024,
+    longitude: 28.9762,
+    rating: 4,
+    tags: ["bistro", "bar", "brunch"],
+  },
+
+  // ── İstiklal / Beyoğlu ───────────────────────────────────────────────────
+  {
+    name: "Ficcin",
+    category: "restaurant",
+    description:
+      "Long-running favourite just off İstiklal for hearty Circassian mantı and Anatolian home cooking.",
+    address: "Kallavi Sk. No:7, Beyoğlu (off İstiklal)",
+    latitude: 41.0348,
+    longitude: 28.9782,
+    rating: 4,
+    tags: ["circassian", "local", "casual"],
+  },
+
+  // ── Beşiktaş (incl. Serencebey) ──────────────────────────────────────────
+  {
+    name: "Serencebey (cafés & restaurants)",
+    category: "poi",
+    description:
+      "Quiet, leafy hilltop pocket of Beşiktaş dotted with neighbourhood cafés and restaurants.",
+    address: "Serencebey, Beşiktaş",
+    latitude: 41.0452,
+    longitude: 29.0072,
+    rating: 4,
+    tags: ["cafes", "quiet", "besiktas"],
+  },
+  {
+    name: "Beşiktaş Fish Market",
+    category: "restaurant",
+    description:
+      "Cluster of meyhanes and seafood spots around the buzzing Beşiktaş fish market.",
+    address: "Beşiktaş Çarşı, Balık Pazarı, Beşiktaş",
+    latitude: 41.0428,
+    longitude: 29.0065,
+    rating: 4,
+    tags: ["seafood", "meze", "meyhane"],
+  },
+
+  // ── Bebek (Bosphorus) ────────────────────────────────────────────────────
+  {
+    name: "Bebek Bay (seaside walk)",
+    category: "poi",
+    description:
+      "Elegant Bosphorus neighbourhood with a waterfront park and promenade made for strolling.",
+    address: "Bebek, Beşiktaş",
+    latitude: 41.0776,
+    longitude: 29.0433,
+    rating: 5,
+    tags: ["bosphorus", "walk", "waterfront"],
+  },
+  {
+    name: "Mangerie Bebek",
+    category: "restaurant",
+    description:
+      "Beloved all-day Bebek brunch spot tucked above the shore with Bosphorus views.",
+    address: "Cevdet Paşa Cd. No:69, Bebek, Beşiktaş",
+    latitude: 41.0779,
+    longitude: 29.0428,
+    rating: 5,
+    tags: ["brunch", "modern", "view"],
+  },
+
+  // ── Anatolian side: Moda & Kadıköy ───────────────────────────────────────
+  {
+    name: "Moda Seaside (Moda Sahili)",
+    category: "poi",
+    description:
+      "Grassy Anatolian-side promenade and a favourite sunset perch over the Marmara Sea.",
+    address: "Moda, Kadıköy",
+    latitude: 40.9786,
+    longitude: 29.0264,
+    rating: 5,
+    tags: ["seaside", "walk", "sunset", "anatolian"],
+  },
+  {
+    name: "Moda Çay Bahçesi",
+    category: "experience",
+    description:
+      "Historic seaside tea garden in Moda, perfect for çay and simit right by the water.",
+    address: "Ferit Tek Sk., Moda, Kadıköy",
+    latitude: 40.977,
+    longitude: 29.0258,
+    rating: 4,
+    tags: ["tea-garden", "view", "local", "anatolian"],
+  },
+  {
+    name: "Aleatico (Moda)",
+    category: "restaurant",
+    description:
+      "Intimate Moda wine bar and bistro pairing natural wines with seasonal small plates.",
+    address: "Moda Cd., Moda, Kadıköy",
+    latitude: 40.984,
+    longitude: 29.027,
+    rating: 4,
+    tags: ["wine-bar", "bistro", "modern", "anatolian"],
+  },
+  {
+    name: "Kadıköy Rıhtım",
+    category: "poi",
+    description:
+      "Buzzing ferry-pier waterfront on the Anatolian side and Kadıköy's favourite meeting point.",
+    address: "Rıhtım Cd., Kadıköy",
+    latitude: 40.9922,
+    longitude: 29.0225,
+    rating: 4,
+    tags: ["ferry", "waterfront", "anatolian"],
+  },
+  {
+    name: "Kadıköy Çarşı (market)",
+    category: "experience",
+    description:
+      "Historic market streets brimming with coffee roasters, meyhanes, sweet shops and street food.",
+    address: "Osmanağa, Kadıköy Çarşısı, Kadıköy",
+    latitude: 40.9903,
+    longitude: 29.027,
+    rating: 5,
+    tags: ["market", "food", "meyhane", "anatolian"],
+  },
+  {
+    name: "Baylan Pastanesi (Kadıköy)",
+    category: "restaurant",
+    description:
+      "Nostalgic Kadıköy patisserie since 1961, famous for its legendary Kup Griye sundae.",
+    address: "Caferağa, Moda Cd. No:19, Kadıköy",
+    latitude: 40.9906,
+    longitude: 29.0293,
+    rating: 4,
+    tags: ["patisserie", "dessert", "historic", "anatolian"],
+  },
 ];
 
 async function main() {
   let created = 0;
+  let updated = 0;
   let skipped = 0;
 
-  for (const pin of ISTANBUL_PINS) {
+  for (let i = 0; i < ISTANBUL_PINS.length; i++) {
+    const pin = ISTANBUL_PINS[i];
+    const imageUrl = photoFor(pin.category, i + 1);
     const existing = await prisma.pin.findFirst({ where: { name: pin.name } });
+
     if (existing) {
-      skipped += 1;
-      console.log(`↷ skip   ${pin.name} (already exists)`);
+      // Backfill a photo onto pins seeded before the imageUrl field existed,
+      // without touching any other (possibly user-edited) fields.
+      if (!existing.imageUrl) {
+        await prisma.pin.update({
+          where: { id: existing.id },
+          data: { imageUrl },
+        });
+        updated += 1;
+        console.log(`↻ image  ${pin.name}`);
+      } else {
+        skipped += 1;
+        console.log(`↷ skip   ${pin.name} (already exists)`);
+      }
       continue;
     }
-    await prisma.pin.create({ data: pin });
+
+    await prisma.pin.create({ data: { ...pin, imageUrl } });
     created += 1;
     console.log(`✓ added  ${pin.name}`);
   }
 
   console.log(
-    `\nDone — ${created} created, ${skipped} skipped, ${ISTANBUL_PINS.length} total.`,
+    `\nDone — ${created} created, ${updated} image-backfilled, ${skipped} skipped, ${ISTANBUL_PINS.length} total.`,
   );
 }
 

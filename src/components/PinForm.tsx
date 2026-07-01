@@ -17,6 +17,7 @@ const emptyState = {
   description: "",
   notes: "",
   address: "",
+  imageUrl: "",
   rating: "",
   tags: "",
 };
@@ -39,6 +40,7 @@ export default function PinForm({
         description: editing.description ?? "",
         notes: editing.notes ?? "",
         address: editing.address ?? "",
+        imageUrl: editing.imageUrl ?? "",
         rating: editing.rating ? String(editing.rating) : "",
         tags: editing.tags.join(", "),
       });
@@ -63,6 +65,7 @@ export default function PinForm({
         description: form.description.trim() || null,
         notes: form.notes.trim() || null,
         address: form.address.trim() || null,
+        imageUrl: form.imageUrl.trim() || null,
         latitude: lat,
         longitude: lng,
         rating: form.rating ? Number(form.rating) : null,
@@ -124,6 +127,30 @@ export default function PinForm({
           placeholder="Optional"
           className="rounded-md border border-gray-300 px-3 py-2 text-sm font-normal focus:border-gray-900 focus:outline-none"
         />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Photo URL
+        <input
+          value={form.imageUrl}
+          onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+          placeholder="https://…  (optional)"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-normal focus:border-gray-900 focus:outline-none"
+        />
+        {form.imageUrl.trim() ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={form.imageUrl.trim()}
+            alt="Preview"
+            className="mt-1 h-24 w-full rounded-md object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+            onLoad={(e) => {
+              e.currentTarget.style.display = "block";
+            }}
+          />
+        ) : null}
       </label>
 
       <label className="flex flex-col gap-1 text-sm font-medium">

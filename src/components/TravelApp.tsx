@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Sidebar from "./Sidebar";
 import PinForm from "./PinForm";
+import PinDetail from "./PinDetail";
 import {
   createPin,
   deletePin,
@@ -28,6 +29,7 @@ export default function TravelApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [editing, setEditing] = useState<Pin | null>(null);
+  const [placing, setPlacing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,9 +47,10 @@ export default function TravelApp() {
     load();
   }, [load]);
 
-  const handleMapClick = useCallback((lat: number, lng: number) => {
+  const handleAddAt = useCallback((lat: number, lng: number) => {
     setEditing(null);
     setSelectedId(null);
+    setPlacing(false);
     setDraft({ lat, lng });
   }, []);
 
@@ -55,6 +58,18 @@ export default function TravelApp() {
     setSelectedId(id);
     setDraft(null);
     setEditing(null);
+    setPlacing(false);
+  }, []);
+
+  const handleDeselect = useCallback(() => {
+    setSelectedId(null);
+  }, []);
+
+  const togglePlacing = useCallback(() => {
+    setDraft(null);
+    setEditing(null);
+    setSelectedId(null);
+    setPlacing((p) => !p);
   }, []);
 
   const handleSubmit = useCallback(
@@ -97,22 +112,42 @@ export default function TravelApp() {
   }, []);
 
   const showForm = draft !== null || editing !== null;
-
-  const counts = useMemo(() => pins.length, [pins]);
+  const selectedPin = useMemo(
+    () => pins.find((p) => p.id === selectedId) ?? null,
+    [pins, selectedId],
+  );
+  const showDetail = !showForm && selectedPin !== null;
+  const count = pins.length;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="flex w-[380px] shrink-0 flex-col border-r border-gray-200 bg-white">
-        <header className="border-b border-gray-200 p-4">
-          <h1 className="text-xl font-bold">🗺️ Türkiye Travel Map</h1>
-          <p className="mt-1 text-xs text-gray-500">
-            {counts} saved {counts === 1 ? "place" : "places"} · click the map to
-            add a pin
-          </p>
+    <div className="flex h-[100dvh] w-full flex-col-reverse overflow-hidden md:flex-row">
+      {/* Sidebar / panel */}
+      <aside className="flex w-full flex-1 flex-col border-t border-gray-200 bg-white md:w-[380px] md:flex-none md:border-r md:border-t-0">
+        <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 to-slate-700 p-4 text-white">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold leading-tight">
+              🗺️ İstanbul Travel Map
+            </h1>
+            <p className="mt-0.5 text-[11px] text-white/70">
+              {count} {count === 1 ? "place" : "places"} · middle-click or{" "}
+              <span className="font-medium text-white/90">+ Add place</span> to
+              pin
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={togglePlacing}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition ${
+              placing
+                ? "bg-amber-400 text-slate-900 hover:bg-amber-300"
+                : "bg-white text-slate-900 hover:bg-white/90"
+            }`}
+          >
+            {placing ? "Tap the map…" : "+ Add place"}
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="nice-scroll flex-1 overflow-y-auto p-4">
           {showForm ? (
             <PinForm
               draft={draft}
@@ -120,8 +155,15 @@ export default function TravelApp() {
               onSubmit={handleSubmit}
               onCancel={handleCancel}
             />
+          ) : showDetail && selectedPin ? (
+            <PinDetail
+              pin={selectedPin}
+              onBack={handleDeselect}
+              onEdit={setEditing}
+              onDelete={handleDelete}
+            />
           ) : loading ? (
-            <p className="text-sm text-gray-500">Loading pins…</p>
+            <p className="text-sm text-gray-500">Loading places…</p>
           ) : loadError ? (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {loadError}
@@ -145,15 +187,18 @@ export default function TravelApp() {
       </aside>
 
       {/* Map */}
-      <main className="relative flex-1">
+      <main className="relative h-[48dvh] w-full md:h-auto md:flex-1">
         <MapView
           pins={pins}
           selectedId={selectedId}
           draft={draft}
-          onMapClick={handleMapClick}
+          placing={placing}
+          onAddAt={handleAddAt}
           onSelect={handleSelect}
+          onDeselect={handleDeselect}
         />
       </main>
     </div>
   );
 }
+

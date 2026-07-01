@@ -5,7 +5,7 @@ import {
   MapContainer,
   TileLayer,
   Marker,
-  Popup,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -18,40 +18,59 @@ interface MapViewProps {
   pins: Pin[];
   selectedId: string | null;
   draft: { lat: number; lng: number } | null;
-  onMapClick: (lat: number, lng: number) => void;
+  placing: boolean;
+  onAddAt: (lat: number, lng: number) => void;
   onSelect: (id: string) => void;
+  onDeselect: () => void;
 }
 
-const DEFAULT_CENTER: [number, number] = [38.9637, 35.2433]; // Türkiye
-const DEFAULT_ZOOM = 6;
+const DEFAULT_CENTER: [number, number] = [41.035, 28.995]; // Istanbul, both shores
+const DEFAULT_ZOOM = 12;
 
 function markerIcon(emoji: string, color: string, active: boolean) {
   return L.divIcon({
     className: "travel-pin",
-    html: `<div class="travel-pin__bubble" style="--pin-color:${color};${
-      active ? "transform:scale(1.2);z-index:1000;" : ""
-    }"><span>${emoji}</span></div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 34],
-    popupAnchor: [0, -32],
+    html: `<div class="travel-pin__bubble${
+      active ? " travel-pin__bubble--active" : ""
+    }" style="--pin-color:${color}"><span>${emoji}</span></div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -34],
+    tooltipAnchor: [0, -30],
   });
 }
 
 const draftIcon = L.divIcon({
   className: "travel-pin",
-  html: `<div class="travel-pin__bubble travel-pin__bubble--draft" style="--pin-color:#111827"><span>➕</span></div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
+  html: `<div class="travel-pin__bubble travel-pin__bubble--draft" style="--pin-color:#0f172a"><span>➕</span></div>`,
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
 });
 
-function ClickHandler({
-  onMapClick,
+function MapInteractions({
+  placing,
+  onAddAt,
+  onDeselect,
 }: {
-  onMapClick: (lat: number, lng: number) => void;
+  placing: boolean;
+  onAddAt: (lat: number, lng: number) => void;
+  onDeselect: () => void;
 }) {
   useMapEvents({
+    // Middle mouse button drops a pin anywhere on the map.
+    mousedown(e) {
+      if (e.originalEvent.button === 1) {
+        e.originalEvent.preventDefault();
+        onAddAt(e.latlng.lat, e.latlng.lng);
+      }
+    },
+    // Left click: place a pin while in "add" mode, otherwise clear selection.
     click(e) {
-      onMapClick(e.latlng.lat, e.latlng.lng);
+      if (placing) {
+        onAddAt(e.latlng.lat, e.latlng.lng);
+      } else {
+        onDeselect();
+      }
     },
   });
   return null;
@@ -61,7 +80,7 @@ function FlyTo({ pin }: { pin: Pin | null }) {
   const map = useMap();
   useEffect(() => {
     if (pin) {
-      map.flyTo([pin.latitude, pin.longitude], Math.max(map.getZoom(), 13), {
+      map.flyTo([pin.latitude, pin.longitude], Math.max(map.getZoom(), 14), {
         duration: 0.8,
       });
     }
@@ -73,8 +92,10 @@ export default function MapView({
   pins,
   selectedId,
   draft,
-  onMapClick,
+  placing,
+  onAddAt,
   onSelect,
+  onDeselect,
 }: MapViewProps) {
   const selectedPin = useMemo(
     () => pins.find((p) => p.id === selectedId) ?? null,
@@ -86,13 +107,19 @@ export default function MapView({
       center={DEFAULT_CENTER}
       zoom={DEFAULT_ZOOM}
       scrollWheelZoom
-      className="h-full w-full"
+      zoomControl={false}
+      className={`h-full w-full${placing ? " is-placing" : ""}`}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
       />
-      <ClickHandler onMapClick={onMapClick} />
+      <MapInteractions
+        placing={placing}
+        onAddAt={onAddAt}
+        onDeselect={onDeselect}
+      />
       <FlyTo pin={selectedPin} />
 
       {pins.map((pin) => {
@@ -104,28 +131,31 @@ export default function MapView({
             icon={markerIcon(cat.icon, cat.color, pin.id === selectedId)}
             eventHandlers={{ click: () => onSelect(pin.id) }}
           >
-            <Popup>
-              <strong>{pin.name}</strong>
+            <Tooltip
+              direction="top"
+              offset={[0, -6]}
+              opacity={1}
+              className="travel-tip"
+            >
+              <span className="tip-name">{pin.name}</span>
               <br />
-              <span style={{ color: cat.color }}>
+              <span className="tip-meta">
                 {cat.icon} {cat.label}
+                {pin.rating ? ` · ${"★".repeat(pin.rating)}` : ""}
               </span>
-              {pin.address ? (
-                <>
-                  <br />
-                  <small>{pin.address}</small>
-                </>
-              ) : null}
-            </Popup>
+            </Tooltip>
           </Marker>
         );
       })}
 
       {draft ? (
         <Marker position={[draft.lat, draft.lng]} icon={draftIcon}>
-          <Popup>New pin location</Popup>
+          <Tooltip direction="top" offset={[0, -6]} className="travel-tip">
+            New place
+          </Tooltip>
         </Marker>
       ) : null}
     </MapContainer>
   );
 }
+

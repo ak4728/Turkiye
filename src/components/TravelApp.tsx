@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Sidebar from "./Sidebar";
 import PinForm from "./PinForm";
 import PinDetail from "./PinDetail";
+import ItineraryPanel from "./ItineraryPanel";
 import {
   createPin,
   deletePin,
@@ -22,6 +23,9 @@ const MapView = dynamic(() => import("./MapView"), {
   ),
 });
 
+type PanelView = "places" | "itineraries";
+type MobileView = "map" | "panel";
+
 export default function TravelApp() {
   const [pins, setPins] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +34,8 @@ export default function TravelApp() {
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [editing, setEditing] = useState<Pin | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [view, setView] = useState<PanelView>("places");
+  const [mobileView, setMobileView] = useState<MobileView>("map");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,6 +58,8 @@ export default function TravelApp() {
     setSelectedId(null);
     setPlacing(false);
     setDraft({ lat, lng });
+    setView("places");
+    setMobileView("panel");
   }, []);
 
   const handleSelect = useCallback((id: string) => {
@@ -59,17 +67,36 @@ export default function TravelApp() {
     setDraft(null);
     setEditing(null);
     setPlacing(false);
+    setView("places");
+    setMobileView("panel");
   }, []);
 
   const handleDeselect = useCallback(() => {
     setSelectedId(null);
   }, []);
 
+  const selectPinByName = useCallback(
+    (name: string) => {
+      const match = pins.find((p) => p.name === name);
+      if (!match) return;
+      setSelectedId(match.id);
+      setDraft(null);
+      setEditing(null);
+      setPlacing(false);
+      setMobileView("map"); // show the pin on the map
+    },
+    [pins],
+  );
+
   const togglePlacing = useCallback(() => {
     setDraft(null);
     setEditing(null);
     setSelectedId(null);
-    setPlacing((p) => !p);
+    setPlacing((p) => {
+      const next = !p;
+      if (next) setMobileView("map");
+      return next;
+    });
   }, []);
 
   const handleSubmit = useCallback(
@@ -120,35 +147,63 @@ export default function TravelApp() {
   const count = pins.length;
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col-reverse overflow-hidden md:flex-row">
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden md:flex-row">
       {/* Sidebar / panel */}
-      <aside className="flex w-full flex-1 flex-col border-t border-gray-200 bg-white md:w-[380px] md:flex-none md:border-r md:border-t-0">
-        <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 to-slate-700 p-4 text-white">
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold leading-tight">
-              🗺️ İstanbul Travel Map
-            </h1>
-            <p className="mt-0.5 text-[11px] text-white/70">
-              {count} {count === 1 ? "place" : "places"} · middle-click or{" "}
-              <span className="font-medium text-white/90">+ Add place</span> to
-              pin
-            </p>
+      <aside
+        className={`${
+          mobileView === "panel" ? "flex" : "hidden"
+        } h-[100dvh] w-full flex-col bg-white md:flex md:h-auto md:w-[380px] md:shrink-0 md:border-r md:border-gray-200`}
+      >
+        <header className="bg-gradient-to-r from-slate-900 to-slate-700 text-white">
+          <div className="flex items-center justify-between gap-3 p-4 pb-2">
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold leading-tight">
+                🗺️ İstanbul Travel Map
+              </h1>
+              <p className="mt-0.5 text-[11px] text-white/70">
+                {count} {count === 1 ? "place" : "places"} · middle-click or{" "}
+                <span className="font-medium text-white/90">+ Add</span> to pin
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={togglePlacing}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition ${
+                placing
+                  ? "bg-amber-400 text-slate-900 hover:bg-amber-300"
+                  : "bg-white text-slate-900 hover:bg-white/90"
+              }`}
+            >
+              {placing ? "Tap the map…" : "+ Add place"}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={togglePlacing}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition ${
-              placing
-                ? "bg-amber-400 text-slate-900 hover:bg-amber-300"
-                : "bg-white text-slate-900 hover:bg-white/90"
-            }`}
-          >
-            {placing ? "Tap the map…" : "+ Add place"}
-          </button>
+          <div className="flex gap-1 px-4 pb-3">
+            {(
+              [
+                ["places", "📍 Places"],
+                ["itineraries", "🗓️ Itineraries"],
+              ] as [PanelView, string][]
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setView(key)}
+                className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  view === key
+                    ? "bg-white text-slate-900"
+                    : "bg-white/10 text-white/80 hover:bg-white/20"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </header>
 
         <div className="nice-scroll flex-1 overflow-y-auto p-4">
-          {showForm ? (
+          {view === "itineraries" ? (
+            <ItineraryPanel onSelectPinByName={selectPinByName} />
+          ) : showForm ? (
             <PinForm
               draft={draft}
               editing={editing}
@@ -187,7 +242,11 @@ export default function TravelApp() {
       </aside>
 
       {/* Map */}
-      <main className="relative h-[48dvh] w-full md:h-auto md:flex-1">
+      <main
+        className={`${
+          mobileView === "map" ? "block" : "hidden"
+        } relative h-[100dvh] w-full md:block md:h-auto md:flex-1`}
+      >
         <MapView
           pins={pins}
           selectedId={selectedId}
@@ -198,7 +257,30 @@ export default function TravelApp() {
           onDeselect={handleDeselect}
         />
       </main>
+
+      {/* Mobile Map / List switch */}
+      <div className="fixed bottom-4 left-1/2 z-[1200] flex -translate-x-1/2 gap-1 rounded-full bg-slate-900/90 p-1 shadow-lg backdrop-blur md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileView("map")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            mobileView === "map" ? "bg-white text-slate-900" : "text-white/80"
+          }`}
+        >
+          🗺️ Map
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView("panel")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            mobileView === "panel" ? "bg-white text-slate-900" : "text-white/80"
+          }`}
+        >
+          📋 List
+        </button>
+      </div>
     </div>
   );
 }
+
 

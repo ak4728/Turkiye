@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -46,6 +46,21 @@ const draftIcon = L.divIcon({
   iconSize: [36, 36],
   iconAnchor: [18, 36],
 });
+
+const userIcon = L.divIcon({
+  className: "travel-user",
+  html: `<div class="travel-user__dot"></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
+function Recenter({ pos }: { pos: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pos) map.flyTo(pos, Math.max(map.getZoom(), 14), { duration: 0.8 });
+  }, [pos, map]);
+  return null;
+}
 
 function MapInteractions({
   placing,
@@ -101,9 +116,37 @@ export default function MapView({
     () => pins.find((p) => p.id === selectedId) ?? null,
     [pins, selectedId],
   );
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  const locate = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoError("Geolocation isn't supported on this device.");
+      return;
+    }
+    setGeoError(null);
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setUserPos([p.coords.latitude, p.coords.longitude]);
+        setLocating(false);
+      },
+      (err) => {
+        setLocating(false);
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location blocked — needs HTTPS or permission."
+            : "Couldn't get your location.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, []);
 
   return (
-    <MapContainer
+    <div className="relative h-full w-full">
+      <MapContainer
       center={DEFAULT_CENTER}
       zoom={DEFAULT_ZOOM}
       scrollWheelZoom
@@ -155,7 +198,35 @@ export default function MapView({
           </Tooltip>
         </Marker>
       ) : null}
-    </MapContainer>
+
+      {userPos ? (
+        <>
+          <Recenter pos={userPos} />
+          <Marker position={userPos} icon={userIcon}>
+            <Tooltip direction="top" offset={[0, -6]} className="travel-tip">
+              You are here
+            </Tooltip>
+          </Marker>
+        </>
+      ) : null}
+      </MapContainer>
+
+      <button
+        type="button"
+        onClick={locate}
+        title="Find my location"
+        aria-label="Find my location"
+        className="absolute right-3 top-3 z-[1000] flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-md ring-1 ring-black/5 transition hover:bg-gray-50"
+      >
+        {locating ? "…" : "📍"}
+      </button>
+
+      {geoError ? (
+        <div className="absolute right-3 top-16 z-[1000] max-w-[220px] rounded-lg bg-slate-900/90 px-3 py-2 text-xs text-white shadow-lg">
+          {geoError}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

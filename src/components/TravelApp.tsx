@@ -59,7 +59,7 @@ export default function TravelApp() {
     setPlacing(false);
     setDraft({ lat, lng });
     setView("places");
-    setMobileView("panel");
+    setMobileView("map");
   }, []);
 
   const handleSelect = useCallback((id: string) => {
@@ -68,7 +68,6 @@ export default function TravelApp() {
     setEditing(null);
     setPlacing(false);
     setView("places");
-    setMobileView("panel");
   }, []);
 
   const handleDeselect = useCallback(() => {
@@ -145,14 +144,21 @@ export default function TravelApp() {
   );
   const showDetail = !showForm && selectedPin !== null;
   const count = pins.length;
+  // On phones, show the map on top with the detail/form below (split view)
+  // instead of hiding the map behind a full-screen panel.
+  const mobileSplit = view === "places" && (showForm || showDetail);
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden md:flex-row">
+    <div className="relative flex h-[100dvh] w-full flex-col-reverse overflow-hidden md:flex-row">
       {/* Sidebar / panel */}
       <aside
         className={`${
-          mobileView === "panel" ? "flex" : "hidden"
-        } h-[100dvh] w-full flex-col bg-white md:flex md:h-auto md:w-[380px] md:shrink-0 md:border-r md:border-gray-200`}
+          mobileSplit
+            ? "flex h-[55dvh] shrink-0"
+            : mobileView === "panel"
+              ? "flex h-[100dvh]"
+              : "hidden"
+        } w-full flex-col bg-white md:flex md:h-auto md:w-[380px] md:shrink-0 md:border-r md:border-gray-200`}
       >
         <header className="bg-gradient-to-r from-slate-900 to-slate-700 text-white">
           <div className="flex items-center justify-between gap-3 p-4 pb-2">
@@ -187,7 +193,10 @@ export default function TravelApp() {
               <button
                 key={key}
                 type="button"
-                onClick={() => setView(key)}
+                onClick={() => {
+                  setView(key);
+                  setMobileView("panel");
+                }}
                 className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   view === key
                     ? "bg-white text-slate-900"
@@ -244,8 +253,12 @@ export default function TravelApp() {
       {/* Map */}
       <main
         className={`${
-          mobileView === "map" ? "block" : "hidden"
-        } relative h-[100dvh] w-full md:block md:h-auto md:flex-1`}
+          mobileSplit
+            ? "block h-[45dvh] shrink-0"
+            : mobileView === "map"
+              ? "block h-[100dvh]"
+              : "hidden"
+        } relative w-full md:block md:h-auto md:flex-1`}
       >
         <MapView
           pins={pins}
@@ -259,7 +272,11 @@ export default function TravelApp() {
       </main>
 
       {/* Mobile Map / List switch */}
-      <div className="fixed bottom-4 left-1/2 z-[1200] flex -translate-x-1/2 gap-1 rounded-full bg-slate-900/90 p-1 shadow-lg backdrop-blur md:hidden">
+      <div
+        className={`${
+          mobileSplit ? "hidden" : "flex"
+        } fixed bottom-4 left-1/2 z-[1200] -translate-x-1/2 gap-1 rounded-full bg-slate-900/90 p-1 shadow-lg backdrop-blur md:hidden`}
+      >
         <button
           type="button"
           onClick={() => setMobileView("map")}

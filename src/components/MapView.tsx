@@ -62,6 +62,19 @@ function Recenter({ pos }: { pos: [number, number] | null }) {
   return null;
 }
 
+// Keep Leaflet's canvas in sync whenever the map container is resized or shown
+// (e.g. the mobile split view / map-list toggle) — otherwise tiles render grey.
+function AutoResize() {
+  const map = useMap();
+  useEffect(() => {
+    const el = map.getContainer();
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 function MapInteractions({
   placing,
   onAddAt,
@@ -164,6 +177,7 @@ export default function MapView({
         onDeselect={onDeselect}
       />
       <FlyTo pin={selectedPin} />
+      <AutoResize />
 
       {pins.map((pin) => {
         const cat = getCategory(pin.category);

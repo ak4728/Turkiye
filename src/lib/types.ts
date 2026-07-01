@@ -8,6 +8,7 @@ export interface Pin {
   notes: string | null;
   address: string | null;
   imageUrl: string | null;
+  images: string[];
   latitude: number;
   longitude: number;
   rating: number | null;
@@ -23,6 +24,7 @@ export interface PinInput {
   notes?: string | null;
   address?: string | null;
   imageUrl?: string | null;
+  images?: string[];
   latitude: number;
   longitude: number;
   rating?: number | null;

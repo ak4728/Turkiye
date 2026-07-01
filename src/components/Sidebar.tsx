@@ -14,11 +14,12 @@ interface SidebarProps {
 
 function Thumb({ pin, cat }: { pin: Pin; cat: Category }) {
   const [failed, setFailed] = useState(false);
-  if (pin.imageUrl && !failed) {
+  const src = pin.images?.[0] ?? pin.imageUrl;
+  if (src && !failed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={pin.imageUrl}
+        src={src}
         alt=""
         className="h-11 w-11 shrink-0 rounded-lg object-cover"
         onError={() => setFailed(true)}

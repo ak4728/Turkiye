@@ -28,6 +28,90 @@ function photoFor(category, lock) {
   return `https://loremflickr.com/800/600/${tags}?lock=${lock}`;
 }
 
+// Real photos: map a pin name -> Wikipedia article title. We pull the lead photo
+// plus a few gallery shots from Wikimedia (properly licensed) at seed time.
+const WIKI_TITLES = {
+  "Hagia Sophia": "Hagia Sophia",
+  "Blue Mosque (Sultan Ahmed Mosque)": "Sultan Ahmed Mosque",
+  "Topkapı Palace": "Topkapı Palace",
+  "Basilica Cistern (Yerebatan Sarnıcı)": "Basilica Cistern",
+  "Süleymaniye Mosque": "Süleymaniye Mosque",
+  "Chora Church (Kariye Mosque)": "Chora Church",
+  "Dolmabahçe Palace": "Dolmabahçe Palace",
+  "Galata Tower": "Galata Tower",
+  "Maiden's Tower (Kız Kulesi)": "Maiden's Tower",
+  "Ortaköy Mosque": "Ortaköy Mosque",
+  "Gülhane Park": "Gülhane Park",
+  "Bosphorus Cruise (Eminönü piers)": "Bosphorus",
+  "Çemberlitaş Hamamı": "Çemberlitaş Hamamı",
+  "Grand Bazaar (Kapalıçarşı)": "Grand Bazaar, Istanbul",
+  "Spice Bazaar (Mısır Çarşısı)": "Spice Bazaar",
+  "İstiklal Avenue": "İstiklal Avenue",
+  "Pera Palace Hotel": "Pera Palace Hotel",
+  "Çırağan Palace Kempinski": "Çırağan Palace",
+  "Galataport Istanbul": "Galataport",
+  "Bebek Bay (seaside walk)": "Bebek, Beşiktaş",
+  "Kadıköy Rıhtım": "Kadıköy",
+  "Kadıköy Çarşı (market)": "Kadıköy",
+  "Moda Seaside (Moda Sahili)": "Moda, Kadıköy",
+};
+
+async function fetchWikiImages(title) {
+  const out = [];
+  const seen = new Set();
+  const push = (u) => {
+    if (!u) return;
+    const key = (u.split("px-").pop() || u).toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(u);
+  };
+  const enc = encodeURIComponent(title.replace(/ /g, "_"));
+  const headers = {
+    "user-agent": "TurkiyeTravelMap/1.0 (personal, non-commercial)",
+    accept: "application/json",
+  };
+  const big = (u) => (u ? u.replace(/\/\d+px-/, "/1024px-") : u);
+
+  try {
+    const r = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${enc}`,
+      { headers },
+    );
+    if (r.ok) {
+      const j = await r.json();
+      push(big(j?.thumbnail?.source) || j?.originalimage?.source);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const r = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/media-list/${enc}`,
+      { headers },
+    );
+    if (r.ok) {
+      const j = await r.json();
+      for (const it of j?.items || []) {
+        if (out.length >= 5) break;
+        if (it.type !== "image" || !it.srcset || !it.srcset[0]) continue;
+        let url = it.srcset[0].src;
+        url = url.startsWith("//") ? "https:" + url : url;
+        url = big(url);
+        if (!/\.(jpe?g|png)(\?|$)/i.test(url)) continue;
+        if (/(logo|icon|oojs|ambox|wiki_letter|question_book|edit-)/i.test(url))
+          continue;
+        push(url);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return out.slice(0, 5);
+}
+
 /**
  * @typedef {Object} SeedPin
  * @property {string} name
@@ -77,7 +161,7 @@ const ISTANBUL_PINS = [
     tags: ["must-see", "palace", "ottoman", "museum"],
   },
   {
-    name: "Basilica Cistern",
+    name: "Basilica Cistern (Yerebatan Sarnıcı)",
     category: "sight",
     description:
       "Atmospheric underground Byzantine water cistern with 336 columns and the famous upside-down Medusa heads.",
@@ -495,39 +579,54 @@ const ISTANBUL_PINS = [
 ];
 
 async function main() {
+  // One-time rename: the Basilica Cistern is the Yerebatan Sarnıcı (same place),
+  // so fold any earlier "Basilica Cistern" pin into the new combined name.
+  await prisma.pin.updateMany({
+    where: { name: "Basilica Cistern" },
+    data: { name: "Basilica Cistern (Yerebatan Sarnıcı)" },
+  });
+
   let created = 0;
   let updated = 0;
   let skipped = 0;
 
   for (let i = 0; i < ISTANBUL_PINS.length; i++) {
     const pin = ISTANBUL_PINS[i];
-    const imageUrl = photoFor(pin.category, i + 1);
+    const title = WIKI_TITLES[pin.name];
+    const images = title ? await fetchWikiImages(title) : [];
+    const imageUrl = images[0] ?? photoFor(pin.category, i + 1);
     const existing = await prisma.pin.findFirst({ where: { name: pin.name } });
 
     if (existing) {
-      // Backfill a photo onto pins seeded before the imageUrl field existed,
-      // without touching any other (possibly user-edited) fields.
-      if (!existing.imageUrl) {
+      if (images.length) {
+        // Upgrade placeholder -> real licensed photos.
         await prisma.pin.update({
           where: { id: existing.id },
-          data: { imageUrl },
+          data: { imageUrl, images },
+        });
+        updated += 1;
+        console.log(`↻ photos ${pin.name} (${images.length})`);
+      } else if (!existing.imageUrl) {
+        await prisma.pin.update({
+          where: { id: existing.id },
+          data: { imageUrl, images: [] },
         });
         updated += 1;
         console.log(`↻ image  ${pin.name}`);
       } else {
         skipped += 1;
-        console.log(`↷ skip   ${pin.name} (already exists)`);
+        console.log(`↷ skip   ${pin.name}`);
       }
       continue;
     }
 
-    await prisma.pin.create({ data: { ...pin, imageUrl } });
+    await prisma.pin.create({ data: { ...pin, imageUrl, images } });
     created += 1;
     console.log(`✓ added  ${pin.name}`);
   }
 
   console.log(
-    `\nDone — ${created} created, ${updated} image-backfilled, ${skipped} skipped, ${ISTANBUL_PINS.length} total.`,
+    `\nDone — ${created} created, ${updated} updated, ${skipped} skipped, ${ISTANBUL_PINS.length} total.`,
   );
 }
 

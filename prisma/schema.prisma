@@ -18,6 +18,7 @@ model Pin {
   notes       String?  @db.Text
   address     String?
   imageUrl    String?  // optional hero photo URL
+  images      String[] @default([]) // optional gallery of photo URLs
   latitude    Float
   longitude   Float
   rating      Int? // optional 1-5

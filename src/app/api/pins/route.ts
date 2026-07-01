@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         notes: data.notes ?? null,
         address: data.address ?? null,
         imageUrl: data.imageUrl ?? null,
+        images: data.images ?? [],
         latitude: data.latitude,
         longitude: data.longitude,
         rating: data.rating ?? null,

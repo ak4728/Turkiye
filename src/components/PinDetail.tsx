@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getCategory } from "@/lib/categories";
 import type { Pin } from "@/lib/types";
 
@@ -27,8 +27,21 @@ export default function PinDetail({
   onDelete,
 }: PinDetailProps) {
   const cat = getCategory(pin.category);
-  const [imgFailed, setImgFailed] = useState(false);
-  const showImage = Boolean(pin.imageUrl) && !imgFailed;
+  const gallery = pin.images?.length
+    ? pin.images
+    : pin.imageUrl
+      ? [pin.imageUrl]
+      : [];
+  const [active, setActive] = useState(0);
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
+
+  // Reset the gallery when a different pin is opened.
+  useEffect(() => {
+    setActive(0);
+    setFailed({});
+  }, [pin.id]);
+
+  const showImage = gallery.length > 0 && !failed[active];
   const directions = `https://www.google.com/maps/search/?api=1&query=${pin.latitude},${pin.longitude}`;
 
   return (
@@ -38,10 +51,10 @@ export default function PinDetail({
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={pin.imageUrl as string}
+            src={gallery[active]}
             alt={pin.name}
             className="h-full w-full object-cover"
-            onError={() => setImgFailed(true)}
+            onError={() => setFailed((f) => ({ ...f, [active]: true }))}
           />
         ) : (
           <div
@@ -76,6 +89,34 @@ export default function PinDetail({
           </h2>
         </div>
       </div>
+
+      {/* Thumbnail strip */}
+      {gallery.length > 1 ? (
+        <div className="nice-scroll -mt-1 flex gap-2 overflow-x-auto pb-1">
+          {gallery.map((src, i) =>
+            failed[i] ? null : (
+              <button
+                key={src + i}
+                type="button"
+                onClick={() => setActive(i)}
+                className={`h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                  i === active
+                    ? "border-gray-900"
+                    : "border-transparent opacity-70 hover:opacity-100"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={() => setFailed((f) => ({ ...f, [i]: true }))}
+                />
+              </button>
+            ),
+          )}
+        </div>
+      ) : null}
 
       {/* Meta */}
       <div className="flex flex-col gap-3 text-sm">

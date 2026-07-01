@@ -46,6 +46,8 @@ const SEARCH = {
   "Moda Çay Bahçesi": "Moda tea garden Istanbul",
   "Kadıköy Rıhtım": "Kadıköy ferry pier Istanbul",
   "Kadıköy Çarşı (market)": "Kadıköy market Istanbul",
+  "Fener & Balat": "Balat Istanbul colorful houses",
+  "Eyüp Sultan Mosque": "Eyüp Sultan Mosque Istanbul",
 };
 function queryFor(pin) {
   const base = SEARCH[pin.name] || pin.name.replace(/\(.*?\)/g, "").trim();
@@ -569,6 +571,30 @@ const ISTANBUL_PINS = [
     longitude: 29.0293,
     rating: 4,
     tags: ["patisserie", "dessert", "historic", "anatolian"],
+  },
+
+  // ── Golden Horn: Fener, Balat & Eyüp ─────────────────────────────────────
+  {
+    name: "Fener & Balat",
+    category: "poi",
+    description:
+      "Two of Istanbul's oldest and most colourful neighbourhoods, Fener and Balat tumble down the hills along the Golden Horn. For centuries this was home to the city's Greek, Jewish and Armenian communities, and their churches, synagogues and the Greek Orthodox Patriarchate still stand among steep lanes of rainbow-painted houses, antique shops and tucked-away cafés. It's a corner of the city made for aimless wandering and photographs.",
+    address: "Balat & Fener, Fatih",
+    latitude: 41.0292,
+    longitude: 28.9498,
+    rating: 4,
+    tags: ["neighbourhood", "colourful", "historic", "golden-horn"],
+  },
+  {
+    name: "Eyüp Sultan Mosque",
+    category: "sight",
+    description:
+      "One of the holiest sites in Turkey, this mosque grew up around the tomb of Abu Ayyub al-Ansari, a companion and standard-bearer of the Prophet Muhammad who died here during the 7th-century Arab siege of Constantinople. The graceful baroque mosque you see today dates to 1800, and its tile-lined courtyards fill with pilgrims — Ottoman sultans were once girded with the sword of Osman on this very spot. From here a cable car climbs to the Pierre Loti café for sweeping views down the Golden Horn.",
+    address: "Merkez, Camii Kebir Sk., Eyüpsultan",
+    latitude: 41.0478,
+    longitude: 28.9337,
+    rating: 4,
+    tags: ["mosque", "pilgrimage", "ottoman", "golden-horn"],
   },
 ];
 

@@ -173,7 +173,7 @@ export const ITINERARIES: Itinerary[] = [
         area: "Fatih & Beşiktaş",
         stops: [
           { name: "Chora Church", pin: "Chora Church (Kariye Mosque)", note: "World-class mosaics." },
-          { name: "Fener & Balat", note: "Colourful multicultural lanes." },
+          { name: "Fener & Balat", pin: "Fener & Balat", note: "Colourful multicultural lanes." },
           { name: "Pierre Loti Hill", pin: "Pierre Loti Hill", note: "Cable car up for the view." },
           { name: "Dolmabahçe Palace", pin: "Dolmabahçe Palace", note: "Or a hamam to wind down." },
         ],
@@ -244,8 +244,8 @@ export const ITINERARIES: Itinerary[] = [
         area: "Fatih & Eyüp",
         stops: [
           { name: "Chora Church", pin: "Chora Church (Kariye Mosque)" },
-          { name: "Fener & Balat", note: "Antique shops and churches." },
-          { name: "Eyüp Sultan", note: "Sacred mosque complex." },
+          { name: "Fener & Balat", pin: "Fener & Balat", note: "Antique shops and churches." },
+          { name: "Eyüp Sultan", pin: "Eyüp Sultan Mosque", note: "Sacred mosque complex." },
           { name: "Pierre Loti Hill", pin: "Pierre Loti Hill" },
           { name: "Mikla", pin: "Mikla", note: "Rooftop farewell dinner." },
         ],
